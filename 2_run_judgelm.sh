@@ -6,10 +6,10 @@
 # ============================================================
 #SBATCH --job-name=judgelm_vllm
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
-#SBATCH --mem=40G
+#SBATCH --gres=gpu:a100:1
+#SBATCH --mem=80G
 #SBATCH --cpus-per-task=8
-#SBATCH --time=03:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=/home/%u/llm_as_a_judge/logs/judgelm_%j.log
 #SBATCH --error=/home/%u/llm_as_a_judge/logs/judgelm_%j.err
 
@@ -28,11 +28,8 @@ CONDA_ENV="judgelm"
 EXPECTED_ROWS=529
 MAX_NEW_TOKENS=512
 
-# HuggingFace cache — keeps large model weights off the home quota.
-# Find your work dir with:  ls /work/
-# Typically /work/pi_<advisor_netid>/$USER  OR  /work/$USER
-# Adjust the line below if the path is different on your allocation.
-HF_HOME="/work/$USER/hf_cache"
+# HuggingFace cache — keeps model weights off the home quota.
+HF_HOME="/work/pi_dagarwal_umass_edu/$USER/hf_cache"
 
 # ============================================================
 # SETUP
