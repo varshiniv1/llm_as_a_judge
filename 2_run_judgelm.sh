@@ -43,6 +43,15 @@ module purge
 module load conda/latest
 conda activate "$CONDA_ENV"
 
+# ============================================================
+# INSTALL PYTHON DEPS (skipped if already present)
+# ============================================================
+python -c "import vllm" 2>/dev/null || {
+    echo "--- Installing Python dependencies ---"
+    python -m pip install vllm pandas numpy scipy scikit-learn
+    echo "--- Install complete ---"
+}
+
 echo "=============================="
 echo " JudgeLM vLLM Baseline"
 echo " User:     $USER"
