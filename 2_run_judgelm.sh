@@ -6,8 +6,8 @@
 # ============================================================
 #SBATCH --job-name=judgelm_vllm
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:a100:1
-#SBATCH --mem=80G
+#SBATCH --gres=gpu:1
+#SBATCH --mem=40G
 #SBATCH --cpus-per-task=8
 #SBATCH --time=04:00:00
 #SBATCH --output=/home/%u/llm_as_a_judge/logs/judgelm_%j.log
