@@ -2,7 +2,7 @@
 # ============================================================
 #  SLURM job — JudgeLM baseline via vLLM
 #  Runs forward pairs (scoring) + reverse pairs (positional bias)
-#  Submit: sbatch 2_run_judgelm.sh
+#  Submit from ~/llm_as_a_judge:  sbatch 2_run_judgelm.sh
 # ============================================================
 #SBATCH --job-name=judgelm_vllm
 #SBATCH --partition=gpu
@@ -10,37 +10,48 @@
 #SBATCH --mem=40G
 #SBATCH --cpus-per-task=8
 #SBATCH --time=03:00:00
-#SBATCH --output=logs/judgelm_%j.log
-#SBATCH --error=logs/judgelm_%j.err
+#SBATCH --output=/home/%u/llm_as_a_judge/logs/judgelm_%j.log
+#SBATCH --error=/home/%u/llm_as_a_judge/logs/judgelm_%j.err
 
 # ============================================================
-# CONFIG — edit these
+# Always run from inside the cloned repo
 # ============================================================
-WORK_DIR="$HOME/judgelm_baseline"
-MODEL="BAAI/JudgeLM-7B-v1.0"          # or JudgeLM-13B-v1.0
+cd "$HOME/llm_as_a_judge"
+
+# ============================================================
+# CONFIG
+# ============================================================
+REPO_DIR="$HOME/llm_as_a_judge"
+WORK_DIR="$REPO_DIR/judgelm_baseline"   # pairs + outputs live here
+MODEL="BAAI/JudgeLM-7B-v1.0"
 CONDA_ENV="judgelm"
-EXPECTED_ROWS=529                       # rows per pair file
+EXPECTED_ROWS=529
 MAX_NEW_TOKENS=512
-HF_HOME="/work/$USER/hf_cache"          # avoid home-dir quota
+
+# HuggingFace cache — keeps large model weights off the home quota.
+# Find your work dir with:  ls /work/
+# Typically /work/pi_<advisor_netid>/$USER  OR  /work/$USER
+# Adjust the line below if the path is different on your allocation.
+HF_HOME="/work/$USER/hf_cache"
 
 # ============================================================
 # SETUP
 # ============================================================
 export HF_HOME
-mkdir -p logs
+mkdir -p "$REPO_DIR/logs"
+mkdir -p "$WORK_DIR/outputs/pairwise/forward"
+mkdir -p "$WORK_DIR/outputs/pairwise/reverse"
 
-# Load conda — adjust to your Unity module setup
 module purge
-module load conda/latest        # Unity module name; check with: module avail conda
+module load conda/latest
 conda activate "$CONDA_ENV"
-
-# Install vLLM if not already present (safe no-op if installed)
-pip install -q vllm
 
 echo "=============================="
 echo " JudgeLM vLLM Baseline"
-echo " Model:    $MODEL"
+echo " User:     $USER"
+echo " Repo:     $REPO_DIR"
 echo " WORK_DIR: $WORK_DIR"
+echo " HF_HOME:  $HF_HOME"
 echo " GPU:      $CUDA_VISIBLE_DEVICES"
 echo "=============================="
 echo ""
@@ -75,5 +86,5 @@ python run_judgelm_vllm.py \
 
 echo ""
 echo "=============================="
-echo " Done. Run 3_aggregate_eval.py"
+echo " Done. Run: python 3_aggregate_eval.py"
 echo "=============================="
