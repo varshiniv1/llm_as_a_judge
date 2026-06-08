@@ -41,7 +41,15 @@ mkdir -p "$WORK_DIR/outputs/pairwise/reverse"
 
 module purge
 module load conda/latest
+
+# conda activate does NOT work in batch scripts (non-interactive shell
+# never sources .bashrc, so the conda shell hook is missing).
+# Sourcing conda.sh explicitly fixes this.
+source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "$CONDA_ENV"
+
+# Verify the right Python is active (shows conda env path, not /usr/bin)
+echo "Python: $(which python)"
 
 # ============================================================
 # INSTALL PYTHON DEPS (skipped if already present)
@@ -51,6 +59,7 @@ python -c "import vllm" 2>/dev/null || {
     python -m pip install vllm pandas numpy scipy scikit-learn
     echo "--- Install complete ---"
 }
+python -c "import vllm, pandas, scipy, sklearn; print('Deps OK')"
 
 echo "=============================="
 echo " JudgeLM vLLM Baseline"
