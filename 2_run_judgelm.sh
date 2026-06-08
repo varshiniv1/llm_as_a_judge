@@ -54,6 +54,14 @@ echo "=============================="
 echo ""
 
 # ============================================================
+# STEP 1 — Prepare pairwise JSONL files
+# (safe to re-run: skips files that already exist at full size)
+# ============================================================
+echo "--- PREPARING PAIRS ---"
+python 1_prepare_pairs.py
+echo ""
+
+# ============================================================
 # FORWARD PAIRS  (for scoring / ranking)
 # ============================================================
 echo "--- FORWARD PAIRS ---"
