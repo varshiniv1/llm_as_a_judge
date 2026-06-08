@@ -13,6 +13,8 @@
 #SBATCH --output=/home/%u/llm_as_a_judge/logs/judgelm_%j.log
 #SBATCH --error=/home/%u/llm_as_a_judge/logs/judgelm_%j.err
 
+set -e   # exit immediately on any error
+
 # ============================================================
 # Always run from inside the cloned repo
 # ============================================================
@@ -22,44 +24,54 @@ cd "$HOME/llm_as_a_judge"
 # CONFIG
 # ============================================================
 REPO_DIR="$HOME/llm_as_a_judge"
-WORK_DIR="$REPO_DIR/judgelm_baseline"   # pairs + outputs live here
+WORK_DIR="$REPO_DIR/judgelm_baseline"
 MODEL="BAAI/JudgeLM-7B-v1.0"
 CONDA_ENV="judgelm"
 EXPECTED_ROWS=529
 MAX_NEW_TOKENS=512
 
 # HuggingFace cache — keeps model weights off the home quota.
-HF_HOME="/work/pi_dagarwal_umass_edu/$USER/hf_cache"
+export HF_HOME="/work/pi_dagarwal_umass_edu/$USER/hf_cache"
 
 # ============================================================
 # SETUP
 # ============================================================
-export HF_HOME
 mkdir -p "$REPO_DIR/logs"
 mkdir -p "$WORK_DIR/outputs/pairwise/forward"
 mkdir -p "$WORK_DIR/outputs/pairwise/reverse"
+mkdir -p "$HF_HOME"
 
 module purge
 module load conda/latest
 
-# conda activate does NOT work in batch scripts (non-interactive shell
-# never sources .bashrc, so the conda shell hook is missing).
-# Sourcing conda.sh explicitly fixes this.
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate "$CONDA_ENV"
+# ============================================================
+# WHY conda run instead of conda activate:
+#   SLURM batch scripts are non-interactive — .bashrc is never
+#   sourced, so the conda shell hook is missing and
+#   `conda activate` silently does nothing (python stays at
+#   /usr/bin/python, the system Debian python which rejects pip).
+#   `conda run -n <env> cmd` properly activates the environment
+#   for each command without needing the shell hook.
+# ============================================================
 
-# Verify the right Python is active (shows conda env path, not /usr/bin)
-echo "Python: $(which python)"
+echo "=============================="
+echo " Environment check"
+echo " Conda:  $(conda --version)"
+echo " Python: $(conda run -n $CONDA_ENV which python)"
+echo "=============================="
 
 # ============================================================
 # INSTALL PYTHON DEPS (skipped if already present)
 # ============================================================
-python -c "import vllm" 2>/dev/null || {
+if ! conda run -n "$CONDA_ENV" python -c "import vllm" 2>/dev/null; then
     echo "--- Installing Python dependencies ---"
-    python -m pip install vllm pandas numpy scipy scikit-learn
+    conda run -n "$CONDA_ENV" pip install vllm pandas numpy scipy scikit-learn
     echo "--- Install complete ---"
-}
-python -c "import vllm, pandas, scipy, sklearn; print('Deps OK')"
+fi
+
+# Hard verify — job dies here if anything is missing
+conda run -n "$CONDA_ENV" python -c \
+    "import vllm, pandas, numpy, scipy, sklearn; print('Deps OK')"
 
 echo "=============================="
 echo " JudgeLM vLLM Baseline"
@@ -76,14 +88,14 @@ echo ""
 # (safe to re-run: skips files that already exist at full size)
 # ============================================================
 echo "--- PREPARING PAIRS ---"
-python 1_prepare_pairs.py
+conda run -n "$CONDA_ENV" python 1_prepare_pairs.py
 echo ""
 
 # ============================================================
 # FORWARD PAIRS  (for scoring / ranking)
 # ============================================================
 echo "--- FORWARD PAIRS ---"
-python run_judgelm_vllm.py \
+conda run -n "$CONDA_ENV" python run_judgelm_vllm.py \
     --input_dir      "$WORK_DIR/data/pairs/forward" \
     --output_dir     "$WORK_DIR/outputs/pairwise/forward" \
     --model          "$MODEL" \
@@ -98,7 +110,7 @@ echo ""
 # REVERSE PAIRS  (for positional bias test)
 # ============================================================
 echo "--- REVERSE PAIRS (positional bias) ---"
-python run_judgelm_vllm.py \
+conda run -n "$CONDA_ENV" python run_judgelm_vllm.py \
     --input_dir      "$WORK_DIR/data/pairs/reverse" \
     --output_dir     "$WORK_DIR/outputs/pairwise/reverse" \
     --model          "$MODEL" \
