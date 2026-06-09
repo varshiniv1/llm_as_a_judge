@@ -127,7 +127,7 @@ def main():
     llm = LLM(
         model=args.model,
         tensor_parallel_size=args.tensor_parallel,
-        dtype="bfloat16",
+        dtype="float16",   # bfloat16 requires compute capability ≥8.0 (A100/H100); float16 works on all GPUs
         trust_remote_code=True,
         max_model_len=4096,      # increase if you hit OOM / truncation warnings
     )
