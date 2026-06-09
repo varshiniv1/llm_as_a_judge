@@ -9,7 +9,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mem=40G
 #SBATCH --cpus-per-task=8
-#SBATCH --time=04:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=/home/%u/llm_as_a_judge/logs/judgelm_%j.log
 #SBATCH --error=/home/%u/llm_as_a_judge/logs/judgelm_%j.err
 
@@ -32,6 +32,11 @@ MAX_NEW_TOKENS=512
 
 # HuggingFace cache — keeps model weights off the home quota.
 export HF_HOME="/work/pi_dagarwal_umass_edu/$USER/hf_cache"
+
+# JudgeLM-7B was fine-tuned for 4096 context but its config.json still
+# reports max_position_embeddings=2048 (LLaMA-1 base). Newer vLLM
+# rejects max_model_len > config value unless this flag is set.
+export VLLM_ALLOW_LONG_MAX_MODEL_LEN=1
 
 # Path to the conda env (first envs_dir from conda config)
 ENV_PATH="/work/pi_dagarwal_umass_edu/${USER}/.conda/envs/${CONDA_ENV}"

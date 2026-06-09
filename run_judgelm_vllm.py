@@ -14,9 +14,15 @@ Outputs one *.jsonl per input file with a pred_text field added.
 
 import argparse
 import json
+import os
 import re
 import sys
 from pathlib import Path
+
+# JudgeLM-7B config.json reports max_position_embeddings=2048 (LLaMA-1
+# base), but it was fine-tuned for 4096. Newer vLLM rejects max_model_len
+# > config value unless this flag is set. Must be set before vllm import.
+os.environ.setdefault("VLLM_ALLOW_LONG_MAX_MODEL_LEN", "1")
 
 from vllm import LLM, SamplingParams
 
