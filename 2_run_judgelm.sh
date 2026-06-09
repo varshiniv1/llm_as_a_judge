@@ -6,7 +6,7 @@
 # ============================================================
 #SBATCH --job-name=judgelm_vllm
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:v100:1          # V100 (sm_70) required — vLLM 0.22.1 needs cc>=7.0; GTX 1080 Ti (cc=6.1) is too old
 #SBATCH --mem=40G
 #SBATCH --cpus-per-task=8
 #SBATCH --time=06:00:00
