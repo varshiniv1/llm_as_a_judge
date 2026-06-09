@@ -33,6 +33,9 @@ MAX_NEW_TOKENS=512
 # HuggingFace cache — keeps model weights off the home quota.
 export HF_HOME="/work/pi_dagarwal_umass_edu/$USER/hf_cache"
 
+# Path to the conda env (first envs_dir from conda config)
+ENV_PATH="/work/pi_dagarwal_umass_edu/${USER}/.conda/envs/${CONDA_ENV}"
+
 # ============================================================
 # SETUP
 # ============================================================
@@ -44,21 +47,21 @@ mkdir -p "$HF_HOME"
 module purge
 module load conda/latest
 
-# ============================================================
-# WHY conda run instead of conda activate:
-#   SLURM batch scripts are non-interactive — .bashrc is never
-#   sourced, so the conda shell hook is missing and
-#   `conda activate` silently does nothing (python stays at
-#   /usr/bin/python, the system Debian python which rejects pip).
-#   `conda run -n <env> cmd` properly activates the environment
-#   for each command without needing the shell hook.
-# ============================================================
+echo "Conda: $(conda --version)"
 
-echo "=============================="
-echo " Environment check"
-echo " Conda:  $(conda --version)"
-echo " Python: $(conda run -n $CONDA_ENV which python)"
-echo "=============================="
+# ============================================================
+# ENSURE CONDA ENV IS VALID
+# If the directory exists but is not a real conda env
+# (DirectoryNotACondaEnvironmentError), remove it and recreate.
+# ============================================================
+if ! conda run -n "$CONDA_ENV" python -c "print('env_ok')" 2>/dev/null; then
+    echo "--- Conda env '$CONDA_ENV' missing or broken. Recreating... ---"
+    rm -rf "$ENV_PATH"
+    conda create -n "$CONDA_ENV" python=3.10 --yes
+    echo "--- Env created ---"
+fi
+
+echo "Python: $(conda run -n $CONDA_ENV which python)"
 
 # ============================================================
 # INSTALL PYTHON DEPS (skipped if already present)
@@ -69,7 +72,7 @@ if ! conda run -n "$CONDA_ENV" python -c "import vllm" 2>/dev/null; then
     echo "--- Install complete ---"
 fi
 
-# Hard verify — job dies here if anything is missing
+# Hard verify — job dies here if anything is still missing
 conda run -n "$CONDA_ENV" python -c \
     "import vllm, pandas, numpy, scipy, sklearn; print('Deps OK')"
 
