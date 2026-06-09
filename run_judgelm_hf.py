@@ -169,10 +169,9 @@ def main():
     print(f"Loading model:     {args.model}")
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
-        torch_dtype=torch.float16,
-        device_map="auto",          # puts model on GPU automatically
+        dtype=torch.float16,
         trust_remote_code=True,
-    )
+    ).to(device)
     model.eval()
     print("Model ready.\n")
 
